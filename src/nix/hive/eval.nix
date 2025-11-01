@@ -141,7 +141,7 @@ let
         "The following Nixpkgs configuration keys set in meta.nixpkgs will be ignored: ${toString remainingKeys}";
     };
   in evalConfig {
-    inherit (npkgs) system;
+    inherit (npkgs.stdenv.hostPlatform) system;
 
     modules = [
       nixpkgsModule
