@@ -32,8 +32,18 @@ let
     flakeToHive = rawFlake:
       if rawFlake.outputs ? colmena then rawFlake.outputs.colmena else throw "Flake must define outputs.colmena.";
 
+    callHive = rawHive:
+      let
+        args = { inherit localSystem; };
+        # Only pass args the function accepts; fall back to {} for strict arg patterns.
+        fnArgs = if rawHive ? __functor
+          then builtins.functionArgs (rawHive.__functor rawHive)
+          else builtins.functionArgs rawHive;
+        accepted = builtins.intersectAttrs fnArgs args;
+      in rawHive accepted;
+
     rawToHive = rawHive:
-      if typeOf rawHive == "lambda" || rawHive ? __functor then rawHive { inherit localSystem; }
+      if typeOf rawHive == "lambda" || rawHive ? __functor then callHive rawHive
       else if typeOf rawHive == "set" then rawHive
       else throw "The config must evaluate to an attribute set.";
   in

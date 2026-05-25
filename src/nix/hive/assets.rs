@@ -111,6 +111,36 @@ fn nix_system() -> &'static str {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_nix_system_returns_valid_triple() {
+        let system = nix_system();
+        assert!(
+            ["x86_64-linux", "aarch64-linux", "x86_64-darwin", "aarch64-darwin"]
+                .contains(&system),
+            "nix_system() returned unexpected value: {}",
+            system
+        );
+    }
+
+    #[test]
+    fn test_nix_system_matches_current_platform() {
+        let system = nix_system();
+        if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
+            assert_eq!(system, "x86_64-linux");
+        } else if cfg!(target_os = "linux") && cfg!(target_arch = "aarch64") {
+            assert_eq!(system, "aarch64-linux");
+        } else if cfg!(target_os = "macos") && cfg!(target_arch = "x86_64") {
+            assert_eq!(system, "x86_64-darwin");
+        } else if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
+            assert_eq!(system, "aarch64-darwin");
+        }
+    }
+}
+
 fn create_file(base: &TempDir, name: &str, executable: bool, contents: &[u8]) -> ColmenaResult<()> {
     let mode = if executable { 0o700 } else { 0o600 };
     let path = base.path().join(name);

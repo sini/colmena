@@ -631,48 +631,18 @@ fn test_hive_autocall() {
 }
 
 #[test]
-fn test_hive_introspect() {
-    let hive = TempHive::new(
+fn test_hive_autocall_receives_local_system() {
+    // Hive functions receive { localSystem } from eval.nix.
+    // The default is derived from builtins.currentSystem or "x86_64-linux".
+    TempHive::valid(
         r#"
-      {
-        test = { ... }: {
-          boot.isContainer = true;
+      { localSystem ? "x86_64-linux", ... }: {
+        borg = { ... }: {
+          boot.isContainer = assert builtins.isString localSystem; true;
         };
       }
     "#,
     );
-
-    let expr = r#"
-      { pkgs, lib, nodes }:
-        assert pkgs ? hello;
-        assert lib ? versionAtLeast;
-        nodes.test.config.boot.isContainer
-    "#
-    .to_string();
-
-    let eval = block_on(hive.introspect(expr, false)).unwrap();
-
-    assert_eq!("true", eval);
-}
-
-#[test]
-fn test_hive_get_meta() {
-    let hive = TempHive::new(
-        r#"
-      {
-        meta.allowApplyAll = false;
-        meta.specialArgs = {
-          this_is_new = false;
-        };
-      }
-  "#,
-    );
-
-    let eval = block_on(hive.get_meta_config()).unwrap();
-
-    eprintln!("{:?}", eval);
-
-    assert!(!eval.allow_apply_all);
 }
 
 #[test]
@@ -722,4 +692,49 @@ fn test_system_type_darwin_parsed() {
     let nodes = block_on(hive.deployment_info()).unwrap();
     let test = &nodes[&node!("test")];
     assert_eq!(SystemType::Darwin, test.system_type());
+}
+
+#[test]
+fn test_hive_introspect() {
+    let hive = TempHive::new(
+        r#"
+      {
+        test = { ... }: {
+          boot.isContainer = true;
+        };
+      }
+    "#,
+    );
+
+    let expr = r#"
+      { pkgs, lib, nodes }:
+        assert pkgs ? hello;
+        assert lib ? versionAtLeast;
+        nodes.test.config.boot.isContainer
+    "#
+    .to_string();
+
+    let eval = block_on(hive.introspect(expr, false)).unwrap();
+
+    assert_eq!("true", eval);
+}
+
+#[test]
+fn test_hive_get_meta() {
+    let hive = TempHive::new(
+        r#"
+      {
+        meta.allowApplyAll = false;
+        meta.specialArgs = {
+          this_is_new = false;
+        };
+      }
+  "#,
+    );
+
+    let eval = block_on(hive.get_meta_config()).unwrap();
+
+    eprintln!("{:?}", eval);
+
+    assert!(!eval.allow_apply_all);
 }
