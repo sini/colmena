@@ -16,6 +16,7 @@
       evalHive = rawFlake: import ./eval.nix {
         inherit rawFlake;
         hermetic = true;
+        localSystem = if builtins ? currentSystem then builtins.currentSystem else "x86_64-linux";
         colmenaOptions = import ./options.nix;
         colmenaModules = import ./modules.nix;
       };

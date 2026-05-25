@@ -69,10 +69,12 @@ impl Assets {
 
     /// Returns the base expression from which the evaluated Hive can be used.
     pub fn get_base_expression(&self) -> String {
+        let local_system = nix_system();
+
         match &self.hive_path {
             HivePath::Legacy(path) => {
                 format!(
-                    "with builtins; let eval = import {eval_nix}; hive = eval {{ rawHive = import {path}; colmenaOptions = import {options_nix}; colmenaModules = import {modules_nix}; }}; in ",
+                    "with builtins; let eval = import {eval_nix}; hive = eval {{ rawHive = import {path}; localSystem = \"{local_system}\"; colmenaOptions = import {options_nix}; colmenaModules = import {modules_nix}; }}; in ",
                     path = path.to_str().unwrap(),
                     eval_nix = self.get_path("eval.nix"),
                     options_nix = self.get_path("options.nix"),
@@ -95,6 +97,17 @@ impl Assets {
             .to_str()
             .unwrap()
             .to_string()
+    }
+}
+
+/// Returns the Nix system triple for the current platform (e.g. "x86_64-linux").
+fn nix_system() -> &'static str {
+    match (std::env::consts::ARCH, std::env::consts::OS) {
+        ("x86_64", "linux") => "x86_64-linux",
+        ("aarch64", "linux") => "aarch64-linux",
+        ("x86_64", "macos") => "x86_64-darwin",
+        ("aarch64", "macos") => "aarch64-darwin",
+        _ => "x86_64-linux",
     }
 }
 

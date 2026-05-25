@@ -1,6 +1,7 @@
 { rawHive ? null               # Colmena Hive attrset
 , rawFlake ? null              # Nix Flake attrset with `outputs.colmena`
 , hermetic ? rawFlake != null  # Whether we are allowed to use <nixpkgs>
+, localSystem ? if builtins ? currentSystem then builtins.currentSystem else "x86_64-linux"
 , colmenaOptions ? import ./options.nix
 , colmenaModules ? import ./modules.nix
 }:
@@ -32,7 +33,7 @@ let
       if rawFlake.outputs ? colmena then rawFlake.outputs.colmena else throw "Flake must define outputs.colmena.";
 
     rawToHive = rawHive:
-      if typeOf rawHive == "lambda" || rawHive ? __functor then rawHive {}
+      if typeOf rawHive == "lambda" || rawHive ? __functor then rawHive { inherit localSystem; }
       else if typeOf rawHive == "set" then rawHive
       else throw "The config must evaluate to an attribute set.";
   in
@@ -63,9 +64,10 @@ let
 
     meta = {
       meta =
-        if !hermetic && userMeta.nixpkgs == null
+        (if !hermetic && userMeta.nixpkgs == null
         then userMeta // { nixpkgs = <nixpkgs>; }
-        else userMeta;
+        else userMeta)
+        // { inherit localSystem; };
     };
   in mergedHive // meta;
 
